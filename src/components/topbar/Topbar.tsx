@@ -1,0 +1,61 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Clock01Icon, Notification03Icon } from '@hugeicons/core-free-icons';
+import styles from './topbar.module.scss';
+
+export interface BreadcrumbItem {
+  label: string;
+  href?: string;
+}
+
+interface TopbarProps {
+  breadcrumbs: BreadcrumbItem[];
+}
+
+export default function Topbar({ breadcrumbs }: TopbarProps) {
+  const [time, setTime] = useState('');
+
+  useEffect(() => {
+    const update = () => {
+      const now = new Date();
+      const day = now.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+      const hours = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+      setTime(day.charAt(0).toUpperCase() + day.slice(1) + ' - ' + hours);
+    };
+    update();
+    const interval = setInterval(update, 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className={styles.topbar}>
+      <div className={styles.left}>
+        {breadcrumbs.map((item, i) => (
+          <span key={i} className={styles.breadcrumbCrumb}>
+            {i > 0 && <span className={styles.breadcrumbSeparator}>/</span>}
+            {item.href ? (
+              <Link href={item.href} className={styles.breadcrumbItem}>
+                {item.label}
+              </Link>
+            ) : (
+              <span className={styles.breadcrumbItem}>{item.label}</span>
+            )}
+          </span>
+        ))}
+      </div>
+
+      <div className={styles.right}>
+        <div className={styles.clock}>
+          <HugeiconsIcon icon={Clock01Icon} size={14} color="currentColor" strokeWidth={1.5} />
+          {time}
+        </div>
+        <button className={styles.iconBtn} type="button" title="Notifiche">
+          <HugeiconsIcon icon={Notification03Icon} size={16} color="currentColor" strokeWidth={1.5} />
+        </button>
+      </div>
+    </div>
+  );
+}
