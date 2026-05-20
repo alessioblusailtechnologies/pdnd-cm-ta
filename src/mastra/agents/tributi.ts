@@ -12,6 +12,8 @@ import {
 export const tributiAgent = new Agent({
   id: 'tributi',
   name: 'Agente Tributi',
+  description:
+    'Agente specializzato del Comune di Taranto per la consultazione della posizione fiscale dei contribuenti sul gestionale Civilia Next: avvisi di pagamento, versamenti F24, accertamenti, posizioni IMU/TARI, titolarità catastali, pratiche tributi minori (Osap, ICP, CUP, Imposta Soggiorno). Richiede sempre il codice fiscale del contribuente.',
   model: 'anthropic/claude-sonnet-4-6',
   tools: {
     getAvvisiPagamento,

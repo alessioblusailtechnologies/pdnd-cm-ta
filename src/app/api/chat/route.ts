@@ -21,6 +21,40 @@ const TOOL_TO_KIND: Record<string, AttachmentKind> = {
   generaExcel: 'excel',
 };
 
+interface DocToolResult {
+  file_id?: unknown;
+  filename?: unknown;
+  url?: unknown;
+}
+
+function extractAttachment(toolName: string, result: unknown): Attachment | null {
+  const kind = TOOL_TO_KIND[toolName];
+  if (!kind) return null;
+  const r = result as DocToolResult | null | undefined;
+  if (!r || typeof r.file_id !== 'string' || typeof r.filename !== 'string' || typeof r.url !== 'string') {
+    return null;
+  }
+  return { kind, file_id: r.file_id, filename: r.filename, url: r.url };
+}
+
+interface SubAgentToolResult {
+  toolName?: unknown;
+  result?: unknown;
+}
+
+function extractSubAgentAttachments(result: unknown): Attachment[] {
+  const r = result as { subAgentToolResults?: unknown } | null | undefined;
+  const list = r?.subAgentToolResults;
+  if (!Array.isArray(list)) return [];
+  const attachments: Attachment[] = [];
+  for (const item of list as SubAgentToolResult[]) {
+    if (typeof item?.toolName !== 'string') continue;
+    const a = extractAttachment(item.toolName, item.result);
+    if (a) attachments.push(a);
+  }
+  return attachments;
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const { messages, message } = body as { messages?: ChatMessage[]; message?: string };
@@ -75,17 +109,15 @@ export async function POST(req: NextRequest) {
           } else if (c.type === 'tool-result') {
             postToolBreakPending = true;
             const toolName = c.payload?.toolName as string;
-            const result = c.payload?.result as Record<string, unknown> | undefined;
+            const result = c.payload?.result;
 
-            const kind = TOOL_TO_KIND[toolName];
-            if (kind && result?.file_id && result?.filename && result?.url) {
-              const attachment: Attachment = {
-                kind,
-                filename: result.filename as string,
-                url: result.url as string,
-                file_id: result.file_id as string,
-              };
-              send({ type: 'attachment', attachment });
+            const direct = extractAttachment(toolName, result);
+            if (direct) send({ type: 'attachment', attachment: direct });
+
+            if (toolName?.startsWith('agent-')) {
+              for (const a of extractSubAgentAttachments(result)) {
+                send({ type: 'attachment', attachment: a });
+              }
             }
 
             send({

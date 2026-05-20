@@ -1,20 +1,25 @@
 'use client';
 
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
   AiChat02Icon,
   Add01Icon,
-  Globe02Icon,
-  BookOpen01Icon,
   Settings02Icon,
   Logout01Icon,
 } from '@hugeicons/core-free-icons';
 import styles from './sidebar.module.scss';
 
 export default function Sidebar() {
+  const pathname = usePathname();
+
   const onNewChat = () => {
     window.dispatchEvent(new CustomEvent('pdmd:new-chat'));
   };
+
+  const isHome = pathname === '/';
+  const isSettings = pathname === '/impostazioni';
 
   return (
     <aside className={styles.sidebar}>
@@ -32,28 +37,25 @@ export default function Sidebar() {
 
         <div className={styles.sidebarSectionLabel}>Principale</div>
 
-        <button className={`${styles.navItem} ${styles.active}`} type="button" onClick={onNewChat}>
+        <Link
+          href="/"
+          className={`${styles.navItem} ${isHome ? styles.active : ''}`}
+          onClick={isHome ? onNewChat : undefined}
+        >
           <HugeiconsIcon icon={AiChat02Icon} size={18} color="currentColor" strokeWidth={1.5} />
           <span>Assistente</span>
-        </button>
-
-        <button className={styles.navItem} type="button" disabled>
-          <HugeiconsIcon icon={Globe02Icon} size={18} color="currentColor" strokeWidth={1.5} />
-          <span>Ricerca Web</span>
-        </button>
-
-        <button className={styles.navItem} type="button" disabled>
-          <HugeiconsIcon icon={BookOpen01Icon} size={18} color="currentColor" strokeWidth={1.5} />
-          <span>Documentazione</span>
-        </button>
+        </Link>
       </div>
 
       <div className={styles.sidebarSection}>
         <div className={styles.sidebarSectionLabel}>Sistema</div>
-        <button className={styles.navItem} type="button" disabled>
+        <Link
+          href="/impostazioni"
+          className={`${styles.navItem} ${isSettings ? styles.active : ''}`}
+        >
           <HugeiconsIcon icon={Settings02Icon} size={18} color="currentColor" strokeWidth={1.5} />
           <span>Impostazioni</span>
-        </button>
+        </Link>
       </div>
 
       <div className={styles.sidebarFooter}>
