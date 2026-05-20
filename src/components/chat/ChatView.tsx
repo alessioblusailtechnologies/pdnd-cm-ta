@@ -9,6 +9,10 @@ import {
   BookOpen01Icon,
   News01Icon,
   Building01Icon,
+  Pdf02Icon,
+  Doc02Icon,
+  Xls02Icon,
+  Download01Icon,
 } from '@hugeicons/core-free-icons';
 import MarkdownRenderer from './MarkdownRenderer';
 import Topbar, { type BreadcrumbItem } from '@/components/topbar/Topbar';
@@ -54,15 +58,39 @@ const examples: ExampleCard[] = [
   },
 ];
 
+type AttachmentKind = 'pdf' | 'word' | 'excel';
+
+interface MessageAttachment {
+  kind: AttachmentKind;
+  filename: string;
+  url: string;
+  file_id: string;
+}
+
 interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  attachments?: MessageAttachment[];
 }
 
 const TOOL_LABELS: Record<string, string> = {
   ricercaWeb: 'Ricerca sul web in corso',
   'ricerca-web': 'Ricerca sul web in corso',
+  generaPdf: 'Generazione PDF in corso',
+  'genera-pdf': 'Generazione PDF in corso',
+  generaWord: 'Generazione documento Word in corso',
+  'genera-word': 'Generazione documento Word in corso',
+  generaExcel: 'Generazione foglio Excel in corso',
+  'genera-excel': 'Generazione foglio Excel in corso',
+  inviaMail: 'Invio mail in corso',
+  'invia-mail': 'Invio mail in corso',
+};
+
+const ATTACHMENT_META: Record<AttachmentKind, { label: string; icon: typeof Pdf02Icon; color: string; bg: string }> = {
+  pdf:   { label: 'PDF',   icon: Pdf02Icon, color: '#b20000', bg: '#f5d0d6' },
+  word:  { label: 'Word',  icon: Doc02Icon, color: '#00396e', bg: '#dbe7f5' },
+  excel: { label: 'Excel', icon: Xls02Icon, color: '#1f6e43', bg: '#d8ecdf' },
 };
 
 function describeTool(toolName: string): string {
@@ -235,6 +263,14 @@ export default function ChatView() {
                 cancelIdleReturn();
                 isIdlePhraseRef.current = false;
                 setThinkingStatus(describeTool(data.tool_name || ''));
+              } else if (data.type === 'attachment' && data.attachment) {
+                setChatMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === botId
+                      ? { ...m, attachments: [...(m.attachments || []), data.attachment as MessageAttachment] }
+                      : m,
+                  ),
+                );
               } else if (data.type === 'error') {
                 receivedText += `\n\nErrore: ${data.content}`;
               }
@@ -322,6 +358,34 @@ export default function ChatView() {
                         <div className={styles.thinkingStatus}>
                           <span className={styles.thinkingDot} />
                           <span className={styles.thinkingText}>{thinkingStatus}</span>
+                        </div>
+                      )}
+                      {msg.attachments && msg.attachments.length > 0 && (
+                        <div className={styles.attachmentsList}>
+                          {msg.attachments.map((att) => {
+                            const meta = ATTACHMENT_META[att.kind];
+                            return (
+                              <a
+                                key={att.file_id}
+                                href={att.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                download={att.filename}
+                                className={styles.attachmentItem}
+                              >
+                                <div className={styles.attachmentIcon} style={{ background: meta.bg, color: meta.color }}>
+                                  <HugeiconsIcon icon={meta.icon} size={20} color="currentColor" strokeWidth={1.5} />
+                                </div>
+                                <div className={styles.attachmentInfo}>
+                                  <div className={styles.attachmentName}>{att.filename}</div>
+                                  <div className={styles.attachmentMeta}>{meta.label} · Clicca per scaricare</div>
+                                </div>
+                                <div className={styles.attachmentDownload}>
+                                  <HugeiconsIcon icon={Download01Icon} size={16} color="currentColor" strokeWidth={1.5} />
+                                </div>
+                              </a>
+                            );
+                          })}
                         </div>
                       )}
                     </div>

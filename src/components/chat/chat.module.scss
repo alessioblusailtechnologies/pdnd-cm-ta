@@ -105,6 +105,82 @@
   white-space: pre-wrap;
 }
 
+// Attachments
+.attachmentsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.attachmentItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--white);
+  border: 1px solid rgba(0, 102, 204, 0.18);
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--text-strong);
+  transition: all 0.15s;
+  cursor: pointer;
+  max-width: 360px;
+
+  &:hover {
+    background: var(--bg-light);
+    border-color: rgba(0, 102, 204, 0.4);
+    box-shadow: 0 2px 8px rgba(0, 57, 110, 0.08);
+  }
+}
+
+.attachmentIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.attachmentInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.attachmentName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--blue);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.attachmentMeta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.attachmentDownload {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+
+.attachmentItem:hover .attachmentDownload {
+  background: rgba(0, 102, 204, 0.1);
+  color: var(--blue-mid);
+}
+
 // Thinking status
 .thinkingStatus {
   display: inline-flex;

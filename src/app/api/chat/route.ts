@@ -6,6 +6,21 @@ interface ChatMessage {
   content: string;
 }
 
+type AttachmentKind = 'pdf' | 'word' | 'excel';
+
+interface Attachment {
+  kind: AttachmentKind;
+  filename: string;
+  url: string;
+  file_id: string;
+}
+
+const TOOL_TO_KIND: Record<string, AttachmentKind> = {
+  generaPdf: 'pdf',
+  generaWord: 'word',
+  generaExcel: 'excel',
+};
+
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const { messages, message } = body as { messages?: ChatMessage[]; message?: string };
@@ -29,7 +44,7 @@ export async function POST(req: NextRequest) {
       };
 
       try {
-        const result = await agent.stream(history, { maxSteps: 8 });
+        const result = await agent.stream(history, { maxSteps: 10 });
 
         let fullText = '';
         let postToolBreakPending = false;
@@ -59,9 +74,23 @@ export async function POST(req: NextRequest) {
             });
           } else if (c.type === 'tool-result') {
             postToolBreakPending = true;
+            const toolName = c.payload?.toolName as string;
+            const result = c.payload?.result as Record<string, unknown> | undefined;
+
+            const kind = TOOL_TO_KIND[toolName];
+            if (kind && result?.file_id && result?.filename && result?.url) {
+              const attachment: Attachment = {
+                kind,
+                filename: result.filename as string,
+                url: result.url as string,
+                file_id: result.file_id as string,
+              };
+              send({ type: 'attachment', attachment });
+            }
+
             send({
               type: 'tool_result',
-              tool_name: c.payload?.toolName,
+              tool_name: toolName,
               tool_call_id: c.payload?.toolCallId,
             });
           } else if (c.type === 'reasoning-delta') {
