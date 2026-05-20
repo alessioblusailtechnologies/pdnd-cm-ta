@@ -1,5 +1,6 @@
 .page {
-  min-height: calc(100vh - 56px);
+  height: calc(100vh - 56px);
+  overflow-y: auto;
   background: var(--bg-light);
   padding: 40px 24px 60px;
 }
