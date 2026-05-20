@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { mastra } from '@/mastra';
+import { getServerSupabase, TABLES } from '@/lib/supabase';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -55,18 +56,65 @@ function extractSubAgentAttachments(result: unknown): Attachment[] {
   return attachments;
 }
 
+async function generateTitle(firstMessage: string): Promise<string | null> {
+  try {
+    const titler = mastra.getAgent('titler');
+    if (!titler) return null;
+    const result = await titler.generate([{ role: 'user', content: firstMessage }]);
+    const text = (result as { text?: unknown }).text;
+    if (typeof text !== 'string') return null;
+    return text.trim().replace(/^["']|["']$/g, '').slice(0, 120) || null;
+  } catch (err) {
+    console.error('[titler] generazione titolo fallita:', err);
+    return null;
+  }
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { messages, message } = body as { messages?: ChatMessage[]; message?: string };
+  const {
+    messages,
+    message,
+    chat_id: chatId,
+  } = body as { messages?: ChatMessage[]; message?: string; chat_id?: string };
 
   if (!message?.trim()) {
     return Response.json({ error: 'message is required' }, { status: 400 });
   }
+  if (!chatId) {
+    return Response.json({ error: 'chat_id is required' }, { status: 400 });
+  }
 
+  const userContent = message.trim();
   const history: ChatMessage[] = [
     ...((messages ?? []).filter((m) => m && m.role && m.content) as ChatMessage[]),
-    { role: 'user', content: message.trim() },
+    { role: 'user', content: userContent },
   ];
+
+  const supabase = getServerSupabase();
+
+  // Persisti il messaggio utente prima di iniziare lo stream. Bloccante per
+  // evitare race condition con eventuali letture (navigazione, refresh)
+  // mentre lo stream è ancora in corso.
+  const { error: insertUserErr } = await supabase
+    .from(TABLES.messages)
+    .insert({ chat_id: chatId, role: 'user', content: userContent });
+  if (insertUserErr) {
+    console.error('[chat] insert user msg fallito:', insertUserErr);
+  }
+
+  // Se è il primo messaggio della chat, avvia la generazione titolo in
+  // parallelo allo stream. Il titolo verrà emesso nello stream quando pronto
+  // ed aggiornato anche su DB.
+  const isFirstMessage = (messages?.length ?? 0) === 0;
+  let titlePromise: Promise<string | null> | null = null;
+  if (isFirstMessage) {
+    titlePromise = generateTitle(userContent).then(async (title) => {
+      if (!title) return null;
+      await supabase.from(TABLES.chats).update({ title }).eq('id', chatId);
+      return title;
+    });
+  }
 
   const agent = mastra.getAgent('assistente');
 
@@ -82,6 +130,7 @@ export async function POST(req: NextRequest) {
 
         let fullText = '';
         let postToolBreakPending = false;
+        const collectedAttachments: Attachment[] = [];
 
         for await (const chunk of result.fullStream) {
           const c = chunk as { type: string; payload?: Record<string, unknown> };
@@ -112,10 +161,14 @@ export async function POST(req: NextRequest) {
             const result = c.payload?.result;
 
             const direct = extractAttachment(toolName, result);
-            if (direct) send({ type: 'attachment', attachment: direct });
+            if (direct) {
+              collectedAttachments.push(direct);
+              send({ type: 'attachment', attachment: direct });
+            }
 
             if (toolName?.startsWith('agent-')) {
               for (const a of extractSubAgentAttachments(result)) {
+                collectedAttachments.push(a);
                 send({ type: 'attachment', attachment: a });
               }
             }
@@ -128,6 +181,27 @@ export async function POST(req: NextRequest) {
           } else if (c.type === 'reasoning-delta') {
             const text = (c.payload?.text as string) || '';
             send({ type: 'reasoning', content: text });
+          }
+        }
+
+        // Persisti il messaggio assistant a fine stream. Awaitato per
+        // garantire che il messaggio sia in DB prima che il client emetta
+        // l'eventuale navigazione post-stream (vedi ChatView).
+        const { error: insertAsstErr } = await supabase.from(TABLES.messages).insert({
+          chat_id: chatId,
+          role: 'assistant',
+          content: fullText,
+          attachments: collectedAttachments.length > 0 ? collectedAttachments : null,
+        });
+        if (insertAsstErr) {
+          console.error('[chat] insert assistant msg fallito:', insertAsstErr);
+        }
+
+        // Se stiamo aspettando il titolo, emettilo prima del done.
+        if (titlePromise) {
+          const title = await titlePromise;
+          if (title) {
+            send({ type: 'title', title });
           }
         }
 

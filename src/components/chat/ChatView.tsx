@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useMemo, useCallback, useEffect, KeyboardEvent, ChangeEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
   Globe02Icon,
@@ -74,6 +75,19 @@ interface ChatMessage {
   attachments?: MessageAttachment[];
 }
 
+export interface InitialMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  attachments?: MessageAttachment[];
+}
+
+export interface InitialChat {
+  id: string;
+  title: string;
+  messages: InitialMessage[];
+}
+
 const TOOL_LABELS: Record<string, string> = {
   ricercaWeb: 'Ricerca sul web in corso',
   'ricerca-web': 'Ricerca sul web in corso',
@@ -94,6 +108,10 @@ const ATTACHMENT_META: Record<AttachmentKind, { label: string; icon: typeof Pdf0
 };
 
 function describeTool(toolName: string): string {
+  if (toolName.startsWith('agent-')) {
+    const sub = toolName.slice('agent-'.length);
+    return `Delego all'agente ${sub}`;
+  }
   return TOOL_LABELS[toolName] || 'Elaborazione in corso';
 }
 
@@ -110,9 +128,23 @@ function randomIdlePhrase(exclude?: string | null): string {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-export default function ChatView() {
+interface Props {
+  initialChat?: InitialChat;
+}
+
+export default function ChatView({ initialChat }: Props) {
+  const router = useRouter();
   const [message, setMessage] = useState('');
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatId, setChatId] = useState<string | null>(initialChat?.id ?? null);
+  const [chatTitle, setChatTitle] = useState<string>(initialChat?.title ?? 'Nuova chat');
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(
+    initialChat?.messages.map((m) => ({
+      id: m.id,
+      role: m.role,
+      content: m.content,
+      attachments: m.attachments,
+    })) ?? [],
+  );
   const [sending, setSending] = useState(false);
   const [streaming, setStreaming] = useState(false);
   const [thinkingStatus, setThinkingStatus] = useState<string | null>(null);
@@ -124,7 +156,12 @@ export default function ChatView() {
     return hour < 13 ? 'Buongiorno' : 'Buonasera';
   }, []);
 
+  // "Nuova chat" event dalla sidebar — reset stato locale quando siamo già
+  // su /. Se siamo su /chat/[id], il click sul link sidebar fa la navigazione
+  // via Next.js router, ChatView verrà smontato (key cambia) e i nuovi stati
+  // partiranno da initialChat = undefined.
   useEffect(() => {
+    if (chatId) return;
     const handler = () => {
       setChatMessages([]);
       setMessage('');
@@ -135,7 +172,7 @@ export default function ChatView() {
     };
     window.addEventListener('pdmd:new-chat', handler);
     return () => window.removeEventListener('pdmd:new-chat', handler);
-  }, []);
+  }, [chatId]);
 
   const onInput = useCallback((e: ChangeEvent<HTMLTextAreaElement>) => {
     const target = e.target;
@@ -147,6 +184,27 @@ export default function ChatView() {
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || sending) return;
     setSending(true);
+
+    // Se non abbiamo ancora una chat (home), creala adesso. NON aggiorniamo
+    // l'URL subito: lo facciamo a fine stream con router.replace, così Next.js
+    // router resta in sync con l'URL del browser (replaceState bypassava il
+    // router e rompeva le navigazioni successive da sidebar).
+    const wasNewChat = !chatId;
+    let activeChatId = chatId;
+    if (!activeChatId) {
+      try {
+        const res = await fetch('/api/chats', { method: 'POST' });
+        if (!res.ok) throw new Error('Errore creazione chat');
+        const { chat } = (await res.json()) as { chat: { id: string; title: string } };
+        activeChatId = chat.id;
+        setChatId(chat.id);
+        setChatTitle(chat.title);
+        window.dispatchEvent(new CustomEvent('pdmd:chats-updated'));
+      } catch {
+        setSending(false);
+        return;
+      }
+    }
 
     const userMsg: ChatMessage = {
       id: crypto.randomUUID(),
@@ -230,6 +288,7 @@ export default function ChatView() {
         body: JSON.stringify({
           messages: previousMessages.map((m) => ({ role: m.role, content: m.content })),
           message: content.trim(),
+          chat_id: activeChatId,
         }),
       });
 
@@ -271,6 +330,9 @@ export default function ChatView() {
                       : m,
                   ),
                 );
+              } else if (data.type === 'title' && typeof data.title === 'string') {
+                setChatTitle(data.title);
+                window.dispatchEvent(new CustomEvent('pdmd:chats-updated'));
               } else if (data.type === 'error') {
                 receivedText += `\n\nErrore: ${data.content}`;
               }
@@ -284,8 +346,15 @@ export default function ChatView() {
       receivedText = receivedText || 'Mi dispiace, si è verificato un errore. Riprova.';
     } finally {
       streamDone = true;
+      // A fine stream: se era una chat nuova creata in questa sessione,
+      // navighiamo all'URL definitivo. router.replace mantiene il router
+      // sincronizzato e re-mounta ChatView via chat/[id]/page.tsx con i
+      // messaggi appena persistiti dal backend.
+      if (wasNewChat && activeChatId) {
+        router.replace(`/chat/${activeChatId}`);
+      }
     }
-  }, [sending, chatMessages]);
+  }, [sending, chatMessages, chatId, router]);
 
   const onSend = useCallback(() => {
     sendMessage(message);
@@ -307,12 +376,6 @@ export default function ChatView() {
   }, [sendMessage]);
 
   const hasMessages = chatMessages.length > 0;
-
-  const chatTitle = useMemo(() => {
-    const first = chatMessages.find((m) => m.role === 'user');
-    if (!first) return 'Nuova chat';
-    return first.content.length > 50 ? first.content.slice(0, 50) + '...' : first.content;
-  }, [chatMessages]);
 
   const breadcrumbs = useMemo(() => {
     const items: BreadcrumbItem[] = [{ label: 'Assistente', href: '/' }];
