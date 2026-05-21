@@ -244,7 +244,7 @@ export function PdfDocument({ title, subtitle, contentMarkdown, meta }: PdfDocum
             <View style={styles.stripeBlue} />
             <View style={styles.stripeRed} />
             <View>
-              <Text style={styles.brand}>PDMD-TA</Text>
+              <Text style={styles.brand}>Demo Platform</Text>
               <Text style={styles.tagline}>COMUNE DI TARANTO</Text>
             </View>
           </View>
@@ -262,7 +262,7 @@ export function PdfDocument({ title, subtitle, contentMarkdown, meta }: PdfDocum
         {tokens.map((token, i) => renderToken(token, i))}
 
         <View style={styles.footer} fixed>
-          <Text>PDMD-TA - Documento generato automaticamente</Text>
+          <Text>Demo Platform - Documento generato automaticamente</Text>
           <Text render={({ pageNumber, totalPages }) => `Pagina ${pageNumber} di ${totalPages}`} />
         </View>
       </Page>

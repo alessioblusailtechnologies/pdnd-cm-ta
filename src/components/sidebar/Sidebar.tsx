@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -56,9 +57,15 @@ export default function Sidebar() {
   return (
     <aside className={styles.sidebar}>
       <div className={styles.sidebarLogo}>
-        <span className={styles.logoStripeBlue} />
-        <span className={styles.logoStripeRed} />
-        <span className={styles.logoName}>PDMD-TA</span>
+        <Image
+          src="/logo-comune-taranto.png"
+          alt="Stemma Comune di Taranto"
+          width={40}
+          height={51}
+          className={styles.logoImg}
+          priority
+        />
+        <span className={styles.logoName}>Demo Platform</span>
       </div>
 
       <div className={`${styles.sidebarSection} ${styles.principaleSection}`}>

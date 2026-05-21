@@ -191,7 +191,7 @@ Usalo quando l'utente chiede di generare una lettera, una bozza editabile, un ve
       new Paragraph({
         alignment: AlignmentType.LEFT,
         children: [
-          new TextRun({ text: 'PDMD-TA', bold: true, color: NAVY, size: 28 }),
+          new TextRun({ text: 'Demo Platform', bold: true, color: NAVY, size: 28 }),
           new TextRun({ text: '   COMUNE DI TARANTO', color: MUTED, size: 14 }),
         ],
       }),

@@ -14,7 +14,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: 'PDMD-TA — Assistente',
+  title: 'Demo Platform — Assistente',
   description: 'Assistente conversazionale del Comune di Taranto',
 };
 

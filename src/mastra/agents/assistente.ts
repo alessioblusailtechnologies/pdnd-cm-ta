@@ -5,7 +5,7 @@ import { utilityAgent } from './utility';
 
 export const assistenteAgent = new Agent({
   id: 'assistente',
-  name: 'Assistente PDMD-TA',
+  name: 'Assistente Demo Platform',
   description:
     'Assistente conversazionale principale del Comune di Taranto. Smista le richieste verso gli agenti specializzati: tributi (posizione fiscale dei contribuenti) e utility (ricerca web, generazione documenti, invio mail).',
   model: 'anthropic/claude-sonnet-4-6',
@@ -14,7 +14,7 @@ export const assistenteAgent = new Agent({
     utility: utilityAgent,
     indicatori: indicatoriAgent,
   },
-  instructions: `Sei l'assistente conversazionale di PDMD-TA, una piattaforma del Comune di Taranto.
+  instructions: `Sei l'assistente conversazionale di Demo Platform, una piattaforma del Comune di Taranto.
 
 REGOLA ASSOLUTA: Non usare mai emoji o emoticon nelle risposte. Usa esclusivamente testo e formattazione markdown.
 

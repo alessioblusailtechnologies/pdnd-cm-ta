@@ -1,19 +1,21 @@
 'use client';
 
 import { useState, useRef, useMemo, useCallback, useEffect, KeyboardEvent, ChangeEvent } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
   Globe02Icon,
   ArrowUp02Icon,
   Search01Icon,
-  BookOpen01Icon,
-  News01Icon,
-  Building01Icon,
+  MoneyBag02Icon,
+  ChartLineData02Icon,
+  FileEditIcon,
   Pdf02Icon,
   Doc02Icon,
   Xls02Icon,
   Download01Icon,
+  InformationCircleIcon,
 } from '@hugeicons/core-free-icons';
 import MarkdownRenderer from './MarkdownRenderer';
 import Topbar, { type BreadcrumbItem } from '@/components/topbar/Topbar';
@@ -22,13 +24,14 @@ import styles from './chat.module.scss';
 interface QuickAction {
   label: string;
   icon: typeof Search01Icon;
+  prompt: string;
 }
 
 const quickActions: QuickAction[] = [
-  { label: 'Servizi al cittadino', icon: Building01Icon },
-  { label: 'Normativa', icon: BookOpen01Icon },
-  { label: 'Notizie', icon: News01Icon },
-  { label: 'Ricerca generica', icon: Search01Icon },
+  { label: 'Posizione tributaria', icon: MoneyBag02Icon, prompt: 'Posizione tributaria del codice fiscale ' },
+  { label: 'Indicatori del Comune', icon: ChartLineData02Icon, prompt: 'Indicatori ' },
+  { label: 'Genera documento', icon: FileEditIcon, prompt: 'Genera un PDF su ' },
+  { label: 'Ricerca sul web', icon: Search01Icon, prompt: 'Cerca ' },
 ];
 
 interface ExampleCard {
@@ -42,21 +45,32 @@ interface ExampleCard {
 
 const examples: ExampleCard[] = [
   {
-    icon: Building01Icon,
-    iconBg: '#ebf2fa',
+    icon: MoneyBag02Icon,
+    iconBg: '#dbe7f5',
     iconColor: '#00396e',
-    title: 'Servizi del Comune',
-    description: 'Cerca informazioni aggiornate sui servizi offerti dal Comune di Taranto.',
-    prompt: 'Cerca online quali sono gli orari di apertura dell\'anagrafe del Comune di Taranto',
+    title: 'Consulta posizione tributaria',
+    description: 'IMU, TARI, avvisi, versamenti e accertamenti del contribuente.',
+    prompt: 'Mostrami la posizione TARI del contribuente con codice fiscale RSSMRA80A01H501U',
   },
   {
-    icon: News01Icon,
-    iconBg: '#f5d0d6',
-    iconColor: '#b20000',
-    title: 'Notizie dal territorio',
-    description: 'Trova notizie e aggiornamenti recenti riguardanti la città di Taranto.',
-    prompt: 'Quali sono le ultime notizie da Taranto sul tema mobilità urbana?',
+    icon: ChartLineData02Icon,
+    iconBg: '#d8ecdf',
+    iconColor: '#1f6e43',
+    title: 'Indicatori del Comune',
+    description: 'KPI di bilancio, personale, digitalizzazione e dinamica demografica.',
+    prompt: 'Dammi gli indicatori finanziari principali del Comune di Taranto',
   },
+];
+
+interface DemoSoggetto {
+  cf: string;
+  descrizione: string;
+}
+
+const demoSoggetti: DemoSoggetto[] = [
+  { cf: 'RSSMRA80A01H501U', descrizione: 'Mario Rossi — persona fisica' },
+  { cf: 'VRDLGI75B15H501Z', descrizione: 'Luigi Verdi — persona fisica' },
+  { cf: '12345678901', descrizione: 'Acme Tarantina S.r.l. — persona giuridica' },
 ];
 
 type AttachmentKind = 'pdf' | 'word' | 'excel';
@@ -135,7 +149,10 @@ interface Props {
 export default function ChatView({ initialChat }: Props) {
   const router = useRouter();
   const [message, setMessage] = useState('');
-  const [chatId, setChatId] = useState<string | null>(initialChat?.id ?? null);
+  // chatId è derivato dalle props: quando si naviga tra chat, ChatView viene
+  // re-montato con un'initialChat diversa (vedi key={chat.id} in page.tsx),
+  // quindi non serve uno useState aggiornabile.
+  const chatId = initialChat?.id ?? null;
   const [chatTitle, setChatTitle] = useState<string>(initialChat?.title ?? 'Nuova chat');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(
     initialChat?.messages.map((m) => ({
@@ -183,28 +200,29 @@ export default function ChatView({ initialChat }: Props) {
 
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || sending) return;
-    setSending(true);
 
-    // Se non abbiamo ancora una chat (home), creala adesso. NON aggiorniamo
-    // l'URL subito: lo facciamo a fine stream con router.replace, così Next.js
-    // router resta in sync con l'URL del browser (replaceState bypassava il
-    // router e rompeva le navigazioni successive da sidebar).
-    const wasNewChat = !chatId;
-    let activeChatId = chatId;
-    if (!activeChatId) {
+    // Se non abbiamo ancora una chat (siamo su /): crea la chat, stasha il
+    // messaggio in sessionStorage, naviga a /chat/[id]. La pagina di
+    // destinazione monterà ChatView con chatId valido e riprenderà il
+    // messaggio pendente per far partire lo stream lì. Questo evita di
+    // manipolare manualmente la history e tiene il router Next.js in sync.
+    if (!chatId) {
+      setSending(true);
       try {
         const res = await fetch('/api/chats', { method: 'POST' });
         if (!res.ok) throw new Error('Errore creazione chat');
         const { chat } = (await res.json()) as { chat: { id: string; title: string } };
-        activeChatId = chat.id;
-        setChatId(chat.id);
-        setChatTitle(chat.title);
+        sessionStorage.setItem('pdmd:pendingChatId', chat.id);
+        sessionStorage.setItem('pdmd:pendingMessage', content.trim());
         window.dispatchEvent(new CustomEvent('pdmd:chats-updated'));
+        router.replace(`/chat/${chat.id}`);
       } catch {
         setSending(false);
-        return;
       }
+      return;
     }
+
+    setSending(true);
 
     const userMsg: ChatMessage = {
       id: crypto.randomUUID(),
@@ -288,7 +306,7 @@ export default function ChatView({ initialChat }: Props) {
         body: JSON.stringify({
           messages: previousMessages.map((m) => ({ role: m.role, content: m.content })),
           message: content.trim(),
-          chat_id: activeChatId,
+          chat_id: chatId,
         }),
       });
 
@@ -346,19 +364,28 @@ export default function ChatView({ initialChat }: Props) {
       receivedText = receivedText || 'Mi dispiace, si è verificato un errore. Riprova.';
     } finally {
       streamDone = true;
-      // A fine stream: se era una chat nuova creata in questa sessione,
-      // navighiamo all'URL definitivo. router.replace mantiene il router
-      // sincronizzato e re-mounta ChatView via chat/[id]/page.tsx con i
-      // messaggi appena persistiti dal backend.
-      if (wasNewChat && activeChatId) {
-        router.replace(`/chat/${activeChatId}`);
-      }
     }
   }, [sending, chatMessages, chatId, router]);
 
   const onSend = useCallback(() => {
     sendMessage(message);
   }, [message, sendMessage]);
+
+  // Drena un eventuale messaggio "pendente" salvato dalla home: quando
+  // sendMessage è stato chiamato senza chatId, abbiamo creato la chat,
+  // navigato qui e stashato il contenuto in sessionStorage. Lo recuperiamo
+  // e facciamo partire lo stream sulla nuova route.
+  useEffect(() => {
+    if (!chatId) return;
+    if (typeof window === 'undefined') return;
+    const pendingChatId = window.sessionStorage.getItem('pdmd:pendingChatId');
+    const pendingMessage = window.sessionStorage.getItem('pdmd:pendingMessage');
+    if (pendingChatId !== chatId || !pendingMessage) return;
+    window.sessionStorage.removeItem('pdmd:pendingChatId');
+    window.sessionStorage.removeItem('pdmd:pendingMessage');
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- drain del messaggio pendente passato dalla home tramite sessionStorage
+    sendMessage(pendingMessage);
+  }, [chatId, sendMessage]);
 
   const onKeydown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -368,7 +395,7 @@ export default function ChatView({ initialChat }: Props) {
   }, [onSend]);
 
   const onQuickAction = useCallback((action: QuickAction) => {
-    setMessage(action.label + ': ');
+    setMessage(action.prompt);
   }, []);
 
   const onExample = useCallback((example: ExampleCard) => {
@@ -391,9 +418,14 @@ export default function ChatView({ initialChat }: Props) {
         {!hasMessages && (
           <>
             <div className={styles.brandHeader}>
-              <span className={styles.brandStripeBlue} />
-              <span className={styles.brandStripeRed} />
-              <span className={styles.brandName}>PDMD-TA</span>
+              <Image
+                src="/logo-comune-taranto.png"
+                alt="Stemma Comune di Taranto"
+                width={90}
+                height={115}
+                className={styles.brandLogo}
+                priority
+              />
             </div>
             <div className={styles.greetingSection}>
               <h1 className={styles.greetingTitle}>{greeting}</h1>
@@ -520,6 +552,27 @@ export default function ChatView({ initialChat }: Props) {
                   </div>
                 </button>
               ))}
+            </div>
+
+            <div className={styles.demoNotice}>
+              <div className={styles.demoNoticeIcon}>
+                <HugeiconsIcon icon={InformationCircleIcon} size={18} color="currentColor" strokeWidth={1.5} />
+              </div>
+              <div className={styles.demoNoticeBody}>
+                <div className={styles.demoNoticeTitle}>Ambiente dimostrativo</div>
+                <p className={styles.demoNoticeText}>
+                  I dati non sono reali. Le funzioni tributarie rispondono solo per i
+                  seguenti codici fiscali di prova:
+                </p>
+                <ul className={styles.demoNoticeList}>
+                  {demoSoggetti.map((s) => (
+                    <li key={s.cf} className={styles.demoNoticeItem}>
+                      <code className={styles.demoNoticeCf}>{s.cf}</code>
+                      <span className={styles.demoNoticeDesc}>{s.descrizione}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </>
         )}

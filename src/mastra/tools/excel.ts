@@ -39,7 +39,7 @@ Usalo quando l'utente chiede una tabella, un export dati, un riepilogo numerico 
   }),
   execute: async (input) => {
     const wb = new ExcelJS.Workbook();
-    wb.creator = 'PDMD-TA';
+    wb.creator = 'Demo Platform';
     wb.created = new Date();
 
     for (const sheet of input.sheets) {

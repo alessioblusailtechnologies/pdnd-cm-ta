@@ -12,25 +12,20 @@
 }
 
 .sidebarLogo {
-  height: 56px;
   flex-shrink: 0;
-  padding: 0 18px;
+  padding: 12px 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
-.logoStripeBlue,
-.logoStripeRed {
-  display: inline-block;
-  width: 5px;
-  height: 18px;
-  border-radius: 2px;
+.logoImg {
+  width: 36px;
+  height: auto;
+  display: block;
+  flex-shrink: 0;
 }
-
-.logoStripeBlue { background: #6FA0FF; }
-.logoStripeRed { background: var(--red-light); }
 
 .logoName {
   font-weight: 700;

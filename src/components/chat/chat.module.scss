@@ -4,7 +4,7 @@
   justify-content: center;
   min-height: calc(100vh - 56px);
   background: var(--white);
-  padding: 60px 24px 40px;
+  padding: 32px 24px 40px;
 
   &.chatMode {
     height: calc(100vh - 56px);
@@ -20,7 +20,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 28px;
+  gap: 22px;
 
   .chatMode & {
     height: 100%;
@@ -34,30 +34,14 @@
 .brandHeader {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 18px;
-  background: var(--white);
-  border-radius: 999px;
-  border: 1px solid var(--border-soft);
-  box-shadow: 0 2px 14px rgba(11, 61, 145, 0.05);
+  justify-content: center;
+  padding: 4px;
 }
 
-.brandStripeBlue,
-.brandStripeRed {
-  display: inline-block;
-  width: 6px;
-  height: 18px;
-  border-radius: 2px;
-}
-
-.brandStripeBlue { background: var(--blue); }
-.brandStripeRed { background: var(--red); }
-
-.brandName {
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 1.2px;
-  color: var(--blue);
+.brandLogo {
+  display: block;
+  width: 90px;
+  height: auto;
 }
 
 // Chat area
@@ -469,5 +453,73 @@
 .examplePromptLabel {
   font-style: normal;
   font-weight: 600;
+  color: var(--text-muted);
+}
+
+// Demo notice
+.demoNotice {
+  width: 100%;
+  display: flex;
+  gap: 12px;
+  padding: 16px 18px;
+  background: var(--sky);
+  border: 1px solid var(--blue-light);
+  border-radius: 12px;
+}
+
+.demoNoticeIcon {
+  flex-shrink: 0;
+  color: var(--blue-mid);
+  display: flex;
+  align-items: flex-start;
+  padding-top: 1px;
+}
+
+.demoNoticeBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.demoNoticeTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue);
+  margin-bottom: 4px;
+}
+
+.demoNoticeText {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.demoNoticeList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.demoNoticeItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.demoNoticeCf {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-strong);
+  background: var(--white);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+.demoNoticeDesc {
+  font-size: 12px;
   color: var(--text-muted);
 }

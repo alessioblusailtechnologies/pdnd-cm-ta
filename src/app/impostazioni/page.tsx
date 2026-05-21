@@ -4,7 +4,7 @@ import AgentsGrid, { type AgentInfo } from '@/components/settings/AgentsGrid';
 import styles from '@/components/settings/settings.module.scss';
 
 export const metadata = {
-  title: 'PDMD-TA — Impostazioni',
+  title: 'Demo Platform — Impostazioni',
 };
 
 const AGENT_IDS_VISIBLE = ['assistente', 'tributi', 'utility', 'indicatori'] as const;

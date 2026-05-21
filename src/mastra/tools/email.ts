@@ -28,7 +28,7 @@ function buildHtml(bodyMarkdown: string): string {
 </head>
 <body>
   ${inner}
-  <div class="footer">Inviato tramite PDMD-TA — Comune di Taranto</div>
+  <div class="footer">Inviato tramite Demo Platform — Comune di Taranto</div>
 </body>
 </html>`;
 }
@@ -67,7 +67,7 @@ Usalo quando l'utente chiede di inviare una comunicazione, un documento o un rep
     }
 
     const resend = getResend();
-    const from = process.env.RESEND_FROM || 'PDMD-TA <onboarding@resend.dev>';
+    const from = process.env.RESEND_FROM || 'Demo Platform <onboarding@resend.dev>';
 
     const result = await resend.emails.send({
       from,
