@@ -17,6 +17,29 @@
   min-width: 0;
 }
 
+// Hamburger: visibile solo su mobile per aprire il drawer della sidebar.
+.menuBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-right: 2px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  border-radius: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--bg-light);
+  }
+
+  svg { display: flex; align-items: center; }
+}
+
 .breadcrumbCrumb {
   display: flex;
   align-items: center;
@@ -84,5 +107,22 @@
   &:hover {
     background: var(--bg-light);
     color: var(--blue);
+  }
+}
+
+@media (max-width: 768px) {
+  .topbar {
+    height: 52px;
+    padding: 0 12px;
+  }
+
+  .menuBtn {
+    display: flex;
+  }
+
+  // L'orario esteso occupa troppo spazio: lo nascondiamo, resta il pulsante
+  // notifiche.
+  .clock {
+    display: none;
   }
 }

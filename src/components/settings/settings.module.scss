@@ -206,3 +206,25 @@
   color: var(--text-muted);
   line-height: 1.45;
 }
+
+@media (max-width: 768px) {
+  .page {
+    height: calc(100dvh - 52px);
+    padding: 24px 14px 40px;
+  }
+
+  .title {
+    font-size: 23px;
+  }
+
+  .itemHeader {
+    gap: 12px;
+    padding: 14px;
+  }
+
+  // Su schermi stretti il contatore strumenti è ridondante con il pannello
+  // espanso: lasciamo solo il chevron per non comprimere il titolo.
+  .counter {
+    display: none;
+  }
+}

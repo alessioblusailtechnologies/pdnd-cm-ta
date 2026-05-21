@@ -44,6 +44,14 @@ body {
   min-width: 0;
 }
 
+// Su mobile la sidebar diventa un drawer in overlay: il contenuto principale
+// occupa l'intera larghezza dello schermo.
+@media (max-width: 768px) {
+  .appMain {
+    margin-left: 0;
+  }
+}
+
 a {
   color: inherit;
   text-decoration: none;

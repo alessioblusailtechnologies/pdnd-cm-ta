@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Clock01Icon, Notification03Icon } from '@hugeicons/core-free-icons';
+import { Clock01Icon, Notification03Icon, Menu01Icon } from '@hugeicons/core-free-icons';
 import styles from './topbar.module.scss';
 
 export interface BreadcrumbItem {
@@ -33,6 +33,15 @@ export default function Topbar({ breadcrumbs }: TopbarProps) {
   return (
     <div className={styles.topbar}>
       <div className={styles.left}>
+        <button
+          className={styles.menuBtn}
+          type="button"
+          title="Menu"
+          aria-label="Apri menu"
+          onClick={() => window.dispatchEvent(new CustomEvent('pdmd:toggle-sidebar'))}
+        >
+          <HugeiconsIcon icon={Menu01Icon} size={20} color="currentColor" strokeWidth={1.5} />
+        </button>
         {breadcrumbs.map((item, i) => (
           <span key={i} className={styles.breadcrumbCrumb}>
             {i > 0 && <span className={styles.breadcrumbSeparator}>/</span>}

@@ -23,6 +23,9 @@ interface ChatListItem {
 export default function Sidebar() {
   const pathname = usePathname();
   const [chats, setChats] = useState<ChatListItem[]>([]);
+  // Stato di apertura del drawer su mobile. Su desktop la sidebar è sempre
+  // visibile (CSS), questo stato controlla solo l'overlay mobile.
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const fetchChats = useCallback(async () => {
     try {
@@ -46,8 +49,24 @@ export default function Sidebar() {
     return () => window.removeEventListener('pdmd:chats-updated', handler);
   }, [fetchChats, pathname]);
 
+  // Il bottone hamburger nella topbar emette questo evento per aprire/chiudere
+  // il drawer (la topbar è renderizzata nelle pagine, non nel layout, quindi
+  // comunichiamo via evento come per gli altri stati condivisi).
+  useEffect(() => {
+    const handler = () => setMobileOpen((prev) => !prev);
+    window.addEventListener('pdmd:toggle-sidebar', handler);
+    return () => window.removeEventListener('pdmd:toggle-sidebar', handler);
+  }, []);
+
+  // Chiude il drawer a ogni cambio di route (es. apertura di una chat).
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- chiusura drawer su navigazione
+    setMobileOpen(false);
+  }, [pathname]);
+
   const onNewChat = () => {
     window.dispatchEvent(new CustomEvent('pdmd:new-chat'));
+    setMobileOpen(false);
   };
 
   const isHome = pathname === '/';
@@ -55,7 +74,13 @@ export default function Sidebar() {
   const activeChatId = pathname?.startsWith('/chat/') ? pathname.split('/')[2] : null;
 
   return (
-    <aside className={styles.sidebar}>
+    <>
+      <div
+        className={`${styles.overlay} ${mobileOpen ? styles.overlayVisible : ''}`}
+        onClick={() => setMobileOpen(false)}
+        aria-hidden="true"
+      />
+      <aside className={`${styles.sidebar} ${mobileOpen ? styles.sidebarOpen : ''}`}>
       <div className={styles.sidebarLogo}>
         <Image
           src="/logo-comune-taranto.png"
@@ -130,6 +155,7 @@ export default function Sidebar() {
           </button>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
