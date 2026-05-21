@@ -1,0 +1,40 @@
+# Render Blueprint — Demo Platform (Next.js)
+# Deploy: su Render, "New +" → "Blueprint" → seleziona questo repo.
+# Render leggerà questo file e creerà il Web Service.
+# I segreti (sync: false) vanno inseriti a mano nella dashboard alla prima deploy.
+
+services:
+  - type: web
+    name: demo-platform
+    runtime: node
+    plan: starter
+    region: frankfurt
+    branch: main
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      # Pin della versione Node (coerente con .node-version)
+      - key: NODE_VERSION
+        value: 22.16.0
+
+      # --- Segreti: impostarli nella dashboard Render (non versionati) ---
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+
+      # --- Modalità servizi PDND: mock in demo (nessuna credenziale reale) ---
+      - key: TRIBUTI_API_MODE
+        value: mock
+      - key: INDICATORI_API_MODE
+        value: mock
